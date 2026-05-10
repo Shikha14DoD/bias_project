@@ -216,3 +216,22 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific: raw data files (not to be committed)
+validation_data/
+corpus/
+
+# Word lists are small reference files — DO commit these
+!word_lists/
+
+# Common data file types in project root or other folders
+*.csv
+*.parquet
+*.dta
+*.dat
+*.xlsx
+*.zip
+
+# Allow committing the GSS .do file (it's a small Stata script, not raw data)
+!*.do
+
