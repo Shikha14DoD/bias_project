@@ -81,3 +81,59 @@ Word lists transcribed directly from the supplementary materials PDF, saved alon
 - *Occupation associations* (proposal Measure 4) ← WEFAT 1 files (used by Garg 2018 for Census validation)
 
 WEAT 7 and WEAT 8 (math-arts, science-arts) are useful supplementary measures of gender-stereotyped academic-domain associations but don't directly map to the four core measures in our proposal. Including them adds breadth and lets us replicate Caliskan's original results on our state-year embeddings as a methodological sanity check.
+
+## 2026-05-10 — Garg 2018 materials pulled
+
+**Source:** Garg, N., Schiebinger, L., Jurafsky, D., & Zou, J. (2018). "Word embeddings quantify 100 years of gender and ethnic stereotypes." *PNAS* 115(16), E3635–E3644. https://doi.org/10.1073/pnas.1720347115
+
+**GitHub repo:** https://github.com/nikhgarg/EmbeddingDynamicStereotypes  
+**Cloned to:** `code/garg_reference/` (gitignored — not committed to our repo)
+
+**Files copied to `word_lists/garg_2018/` (15 total):**
+
+*Gender axis stimuli:*
+- `male_pairs.txt`, `female_pairs.txt` — paired gender terms used to define the gender direction in embedding space
+
+*Occupation lists and validation data:*
+- `occupations1950.txt` — full occupation list keyed to 1950 Census codes
+- `occupations1950_professional.txt` — subset of professional occupations
+- `occupation_map.csv` — mapping between occupation names and Census codes
+- `occupation_percentages_gender_occ1950.csv` — historical female/male composition of each occupation by Census year (1880–2015 range, national-level)
+
+*Adjective category lists:*
+- `adjectives_appearance.txt` — looks-related descriptors
+- `adjectives_intelligencegeneral.txt` — mental capability descriptors
+- `adjectives_sensitive.txt` — emotional/sensitivity descriptors
+- `adjectives_otherization.txt` — foreign/outsider framing descriptors
+- `adjectives_princeton.txt` — adjectives from Princeton Trilogy stereotyping studies
+- `adjectives_williamsbest.txt` — Williams & Best cross-cultural stereotype adjectives
+
+*Personality and stereotype reference data:*
+- `personalitytraits_original.txt` — Big Five-style personality traits
+- `mturk_stereotypes.csv` — crowdsourced gender stereotype ratings
+- `princeton_stereotypes.csv` — Princeton stereotype ratings
+
+**Notes on `occupation_percentages_gender_occ1950.csv` specifically:**
+- Columns: Census year, Occupation, Total Weight (count of workers), Female (fraction), Male (fraction)
+- Data is Census-derived — Garg et al. processed raw Census records (likely via IPUMS using the standardized OCC1950 occupation classification, which provides cross-time consistency).
+- **National-level only** — no state breakdown. Useful as a template for what occupation-gender validation data looks like, but for our state-year project, we will need to pull fresh IPUMS data at state-level resolution.
+- Visible year range in inspection: 1880–2015.
+- Sanity check: occupational gender patterns visible in the data align with documented history (e.g., 1950 guards 2% female, 1940 photographers 8.8% female, 2007 dancers 79% female).
+
+**Files NOT copied (out of scope for gender-focused project):**
+- Race-related: `names_asian.txt`, `names_black.txt`, `names_chinese.txt`, `names_hispanic.txt`, `names_russian.txt`, `names_white.txt`, `occupation_percentages_race_occ1950.csv`
+- Religion-related: `words_christianity.txt`, `words_islam.txt`, `words_terrorism.txt`
+- Internal computation artifacts: `vocab_counts/` (corpus-specific token counts)
+- Duplicate format: `adjectives_williamsbest.csv` (kept .txt version only)
+
+**Mapping to our project bias measures:**
+- *Career-family bias* (Measure 1) ← Caliskan WEAT 6 (already pulled)
+- *Competence-warmth bias* (Measure 2) ← Garg `adjectives_intelligencegeneral.txt` + `adjectives_sensitive.txt`
+- *Leadership-subordination bias* (Measure 3) ← will need additional curation; Garg's adjective lists provide some terms but not a clean leadership/subordination split
+- *Occupation associations* (Measure 4) ← Garg `occupations1950.txt` + `occupation_percentages_gender_occ1950.csv` (national reference) → will supplement with state-level IPUMS pulls
+
+**Reference scripts in `code/garg_reference/` (gitignored — for reference only):**
+- `dataset_utilities/create_yrly_datasets.py` — per-year corpus preprocessing
+- `dataset_utilities/pipeline.py` — embedding training and bias-measure pipeline
+- `changes_over_time.py` — main analysis script for temporal bias trends
+- Will refer to these when writing our own embedding training and bias computation code; not directly reused.

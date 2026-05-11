@@ -235,3 +235,6 @@ corpus/
 # Allow committing the GSS .do file (it's a small Stata script, not raw data)
 !*.do
 
+# External reference code (cloned from other repos, not part of our codebase)
+code/garg_reference/
+
