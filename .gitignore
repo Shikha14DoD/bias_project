@@ -231,6 +231,11 @@ corpus/
 *.dat
 *.xlsx
 *.zip
+!word_lists/**/*.csv
+!word_lists/**/*.parquet
+!word_lists/**/*.dta
+!word_lists/**/*.dat
+!word_lists/**/*.xlsx
 
 # Allow committing the GSS .do file (it's a small Stata script, not raw data)
 !*.do
