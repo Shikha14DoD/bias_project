@@ -137,3 +137,114 @@ WEAT 7 and WEAT 8 (math-arts, science-arts) are useful supplementary measures of
 - `dataset_utilities/pipeline.py` — embedding training and bias-measure pipeline
 - `changes_over_time.py` — main analysis script for temporal bias trends
 - Will refer to these when writing our own embedding training and bias computation code; not directly reused.
+
+## 2026-05-15 — GDELT setup, pipeline architecture, and corpus scope finding
+
+### GDELT BigQuery access set up
+
+**Why this approach:** GDELT 2.0's Global Knowledge Graph (GKG) is the primary 
+modern-era source for news article metadata. Three access methods are available 
+(raw CSV downloads, DOC API, BigQuery), with BigQuery being the right choice 
+for our project's scale:
+- Raw CSV downloads — impractical (hundreds of GB of 15-minute files since 2015)
+- DOC API — query result limits cap useful pulls at a few hundred records
+- BigQuery — handles millions of records per query via SQL, free tier 
+  (1 TB/month query processing) sufficient for anticipated workload
+
+**Setup completed:**
+- Google Cloud project created: `bias-project-gdelt` (Project ID: bias-project-gdelt)
+- Working in BigQuery Sandbox mode (no billing required, 1 TB/month free queries)
+- Verified access to public dataset `gdelt-bq.gdeltv2.gkg_partitioned`
+- Browsed full schema via Explorer panel to confirm column names
+
+**Test queries run:**
+1. Single-day count for 2020-01-01: returned 250,556 GKG records, confirming 
+   read access and dataset volume
+2. (Optional follow-up: single-source pull for azcentral.com to verify schema 
+   matches documentation)
+
+### Key GKG fields for our project
+Verified in BigQuery schema view:
+- `DATE` — publication timestamp at 15-minute granularity
+- `SourceCommonName` — source domain (e.g., azcentral.com) for state mapping
+- `DocumentIdentifier` — full article URL (used for text fetching downstream)
+- `V2Themes` — GDELT's theme taxonomy, semicolon-separated
+- `V2Tone` — comma-separated tone scores (positive%, negative%, polarity, 
+  activity, etc.)
+- `V2Locations` — geocoded locations mentioned in article
+- `SourceCollectionIdentifier` — distinguishes news media from other sources
+
+Authoritative reference: GDELT GKG 2.1 Codebook at 
+http://data.gdeltproject.org/documentation/GDELT-Global_Knowledge_Graph_Codebook-V2.1.pdf
+
+### Cost management approach
+- Always filter on `_PARTITIONTIME` in WHERE clause to limit partition scanning
+- Use `gkg_partitioned` table (not `gkg`) for cheaper date-filtered queries
+- A typical single-day, single-source query processes < 1 GB (well within free tier)
+- Without partition filtering, queries can scan hundreds of GB
+
+### Pipeline architecture (modern coverage, if confirmed in scope)
+
+End-to-end pipeline:
+1. BigQuery query → article URLs + metadata (CSV export)
+2. Article text fetcher → raw article text from publisher URLs
+3. Text cleaning + concatenation → per (state, year) corpus files
+4. Word embedding training → per-cell embeddings
+5. WEAT bias computation using Caliskan/Garg word lists → bias scores
+6. Aggregate into state-year panel CSV
+7. Validation against GSS, Census occupation data, CAWP
+
+### Key engineering risk: article-text-fetching
+GDELT provides URLs and metadata, NOT full article text. Stage 2 of the 
+pipeline requires fetching article text from publisher URLs, which involves:
+- Anti-bot detection on news sites
+- Paywalls (concentrated in major outlets and recent years)
+- URL rot for older articles
+- Boilerplate extraction (navigation, ads, comments)
+- Per-site rate limits and terms of service
+
+**Realistic fetch success rate:** Likely 60–80% depending on source mix and 
+time period. Concentration of paywalls at higher-quality outlets introduces 
+sampling concerns about what the corpus actually represents.
+
+**Mitigation plan:** Before committing to GDELT-only modern coverage, run a 
+small fetch experiment (~200 URLs from one month, mixed sources) to measure 
+realistic success rate. If success rate is low, NewsBank access becomes more 
+critical for the modern panel.
+
+### Storage estimates
+Rough projections for full modern panel (50 states × 10 years):
+- BigQuery URL CSVs: ~5 GB
+- Raw fetched text: ~250 GB
+- Cleaned per-cell corpora: ~100 GB
+- Trained embeddings: ~25 GB
+- Final bias scores: a few MB
+
+Manageable on local machine with external storage or Google Cloud Storage.
+
+### Other modern-corpus access methods evaluated
+- GDELT Summary site (summary.gdeltproject.org): currently has expired SSL 
+  certificate (NET::ERR_CERT_DATE_INVALID). Worked around by using DOC API 
+  on properly-secured api.gdeltproject.org domain for any future exploration.
+- Google Cloud Marketplace listings for GDELT: show "GDELT 2.0 Event Database" 
+  but this is the wrong table for our project (we need GKG, not Events). 
+  Adding via Marketplace is unnecessary since public datasets are directly 
+  queryable in BigQuery.
+
+### Outstanding scope question (sent to manager)
+Awaiting manager's response on target year range:
+- Historical only (1900–1922 strong, 1923–1963 thin)
+- Modern only (1985–2014 via NewsBank if access granted, 2015+ via GDELT)
+- Full span with the 1923–1984 gap documented
+
+GDELT setup is complete and ready to use immediately once modern coverage 
+is confirmed in scope. No further GDELT work planned until scope clarified, 
+to avoid building infrastructure for a date range that may not be targeted.
+
+### Sources not yet explored (deferred until scope confirmed)
+For potential 1964–1984 gap filling if full historical arc is in scope:
+- HathiTrust digital library (state-of-publication metadata available)
+- Congressional Record (state-tagged via representatives)
+- State-of-the-state addresses (one per state per year)
+- Internet Archive newspaper digitization
+- Common Crawl filtered to US news domains (heavy engineering required)
