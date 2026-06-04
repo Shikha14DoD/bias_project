@@ -248,3 +248,157 @@ For potential 1964–1984 gap filling if full historical arc is in scope:
 - State-of-the-state addresses (one per state per year)
 - Internet Archive newspaper digitization
 - Common Crawl filtered to US news domains (heavy engineering required)
+
+
+## 2026-05-29 — Common Crawl evaluation, NJIT ProQuest access discovery, TDM Studio trial requested
+
+### Common Crawl exploration (later determined redundant)
+
+**Context:** Started this thread under the assumption that NewsBank access wouldn't 
+materialize, leaving a corpus gap for 1985+. Explored Common Crawl as a potential 
+free fallback for the modern period.
+
+**Setup completed:**
+- Created `code/common_crawl_demo/` folder with `cc_test.ipynb` and `README.md`
+- Set up Python virtual environment at project root (`venv/`)
+- Installed packages: `cdx_toolkit`, `warcio`, `trafilatura`, `lxml_html_clean`, 
+  `requests`
+- Selected venv as VS Code Python interpreter for the notebook
+
+**Demo attempt:**
+- Targeted 11 US newspaper domains across 9 states (large/medium/small mix)
+- Queried Common Crawl CDX index for 2024 coverage
+
+**Result:** Free HTTP CDX endpoint (`index.commoncrawl.org`) was unreliable — 
+connections dropped on every query, both through `cdx_toolkit` and via direct 
+HTTP. Confirmed it's a server-side issue, not our code. Production access would 
+require AWS Athena (paid) or direct WARC file processing (engineering-heavy).
+
+**Realized mid-thread:** Common Crawl would have covered 2015–present, which is 
+the same period GDELT BigQuery (already set up on 2026-05-15) covers. So the 
+exploration was largely redundant — GDELT already addresses this window. 
+Should have checked existing project state before adding a new corpus source.
+
+**Decision:** Paused Common Crawl. Keeping the notebook/venv setup in case 
+relevant later, but not pursuing further. GDELT remains the 2015–present 
+solution.
+
+### NJIT ProQuest access confirmed
+
+**Discovery:** Logged into ProQuest via NJIT and confirmed access to 7 databases, 
+including the full U.S. Newsstream family:
+- U.S. Newsstream Collection (1980–current)
+- U.S. Major Dailies (1980–current)
+- U.S. Hispanic Newsstream (Spanish + English Hispanic press)
+- U.S. Midwest Newsstream
+- U.S. North Central Newsstream
+- U.S. Northeast Newsstream
+- U.S. South Central Newsstream
+- U.S. Southeast Newsstream
+- U.S. West Newsstream
+- CBS News 60 Minutes (1997–2014) — TV transcripts
+
+**Content verified:** Opened sample article (Minneapolis Star and Tribune, 
+Jan 3 1986) — full-text narrative news writing, exactly the kind of content 
+needed for embedding-based bias measurement. Result count of 1.3M+ articles 
+in one regional Newsstream confirms substantial volume.
+
+**Implications for corpus map:**
+- 1985–present content is available through NJIT — this addresses the modern gap
+- Hispanic Newsstream covers the Spanish-language press concern flagged in the 
+  proposal (TX, CA, FL, NM)
+- However: the standard ProQuest web interface allows reading/saving individual 
+  articles only — NOT bulk extraction. Saving articles as PDFs to build a corpus 
+  would violate NJIT's license terms and is not viable
+- For computational use, need TDM Studio (ProQuest's hosted Jupyter environment) 
+  or a negotiated bulk-export agreement
+
+### TDM Studio trial requested
+
+**Action:** Submitted TDM Studio trial request through NJIT ProQuest access.
+
+**Framing used:**
+- Use: Compute word embeddings and gender bias scores (WEAT, relative norm 
+  distance) from full-text U.S. newspaper articles. Only derived statistical 
+  outputs (embeddings, bias scores) will be exported; no article text.
+- Topic: Measuring state-level gender bias in U.S. public discourse, 
+  1900–present, using computational text analysis.
+
+**Affiliation:** NJIT alumna (continued library access).
+
+**Status:** Pending response. Expected 2–5 business days.
+
+**Important behavioral note:** While the trial is pending, no bulk-extraction 
+activity from the alumni-access ProQuest account. ProQuest detects systematic 
+downloading and reviews account behavior — keeping activity clean improves 
+trial approval odds.
+
+### Updated corpus map
+
+| Period | Source | Status |
+|---|---|---|
+| 1900–1963 | Chronicling America | ✓ Free, accessible |
+| 1964–1984 | ProQuest Historical Newspapers | ✗ Not visible in NJIT's 7 databases — need to check with librarian |
+| 1985–2014 | NJIT U.S. Newsstream (via TDM Studio) | ⚠️ Content confirmed; computational access pending TDM trial |
+| 2015–present | GDELT BigQuery (set up 2026-05-15) | ✓ URL/metadata access ready; article text fetching is separate step |
+
+### Outstanding questions
+
+1. **TDM Studio trial outcome** — wait for ProQuest/NJIT response (2–5 days)
+2. **ProQuest Historical Newspapers availability at NJIT** — need to email 
+   reference librarian to confirm whether NJIT has this (covers 1964–1984)
+
+
+### Process note for future sessions
+
+Today included a redundant Common Crawl exploration that could have been avoided 
+by checking the existing project state (specifically the GDELT BigQuery setup 
+done 2026-05-15). For future corpus-related decisions, the first move should 
+be reviewing what's already in place before adding new sources.
+
+### Congressional Record — end-to-end demo working
+
+**Path that works:** GovInfo API at the granule level, specifically:
+- `/packages/{packageId}/granules` to list speeches in a day
+- `/packages/{packageId}/granules/{granuleId}/summary` for speaker metadata
+- The `txtLink` from the granule summary for the speech text
+
+**Path that doesn't work (verified):**
+- GovInfo bulk data at /bulkdata/CREC/ — returns "content not found" (CREC 
+  not in the bulk data offerings)
+- `/published/{date}/{date}` API endpoint with collection filter — returns 0
+- `/collections/CREC/{start}/{end}` API endpoint — returns 0
+
+**Demo executed:**
+- Pulled package CREC-2024-03-12 (one day of House proceedings, 197 granules)
+- Filtered to a substantive speech granule (CREC-2024-03-12-pt1-PgH1097-4)
+- Confirmed metadata: speaker = Vasquez (D-NM, House), BioGuide V000136
+- Confirmed full speech text retrievable via txtLink
+
+**Implications for project:**
+- State-year mapping for political speech is essentially solved at the API 
+  level — no inference required, GovInfo returns the state attribute directly
+- Daily Edition (CREC) covers 1995–present cleanly
+- Bound Edition (CRECB, 1873–1994) is PDF-based; Democracy-Lab parser handles 
+  it with caveats — would need separate effort
+- For convergent validation against newspaper bias scores, 1995+ data is 
+  more than enough
+
+**Demo files saved at:** 
+`code/congressional_record_scraper/cr_minimal_demo.ipynb`
+
+**Next steps when CR work resumes:**
+- Build a loop over all session days in a target year
+- For each granule with members≥1, pull text + speaker state
+- Bucket by state-year
+- Train embeddings per state-year cell (validation corpus)
+- Compute bias scores
+- Compare with newspaper-derived bias scores (convergent validity test)
+
+**Note on demo approach:** The demo bypassed the cloned Democracy-Lab 
+parser and called the GovInfo API directly. This worked for the simple 
+case (granule with members metadata in API summary) but doesn't handle 
+multi-speaker sections, procedural granules, or pre-1994 PDF content. 
+Democracy-Lab parser remains the right tool for production-scale CR 
+corpus building. The cloned repo stays in `code/congressional_record_scraper/uscongress-data/` 
+for when production work begins.
