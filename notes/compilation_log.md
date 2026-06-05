@@ -402,3 +402,175 @@ multi-speaker sections, procedural granules, or pre-1994 PDF content.
 Democracy-Lab parser remains the right tool for production-scale CR 
 corpus building. The cloned repo stays in `code/congressional_record_scraper/uscongress-data/` 
 for when production work begins.
+
+## 2026-06-04 — Security cleanup, Git housekeeping, ready to begin extraction
+
+### What changed today
+
+- Migrated GovInfo API key out of notebooks into `.env` file at project root
+- Updated `cr_test.ipynb` and `cr_minimal_demo.ipynb` to load `API_KEY` via `python-dotenv`
+- Regenerated GovInfo API key (previous key exposed earlier in session)
+- Cleared output cells in notebooks to avoid leaking key in stored output
+- Added `.env`, `secrets.json`, `venv/`, `uscongress-data/`, and data folders to `.gitignore`
+- Committed and pushed demo notebooks to GitHub (`gender_bias_in_usa` branch)
+
+### Status of corpus sources (as discussed with Gineete)
+
+| Source | Status |
+|---|---|
+| GSS | Downloaded; processing pending |
+| Newsstream | NJIT access confirmed; awaiting TDM Studio trial response |
+| TDM Studio | Trial requested, no response yet |
+| Congressional Record | API path verified; full January 2024 extraction starting now |
+| GDELT BigQuery | Access set up; extraction starting next |
+| Chronicling America | Source verified accessible; extraction starting after GDELT |
+| Reddit (PullPush) | Path verified; greenlit by Gineete; multi-week extraction to start in background |
+| Twitter | No free realistic path identified — recommended skip; awaiting Gineete confirmation |
+| ProQuest Historical Newspapers (1964–1984) | NJIT availability not yet confirmed; librarian inquiry not sent |
+
+### Deadline / commitment
+
+Gineete asked for an early demo by Friday EOD US time (so by Saturday morning IST). Plan:
+- **Wed/Thu**: Extract small slices from Chronicling America, GDELT, Congressional Record; kick off Reddit in background; process GSS
+- **Fri**: Build dashboard/notebook combining what's extracted so far, with bias scores on the small slice — focus on showing pipeline working end-to-end
+
+### Outstanding decisions
+
+- Whether to use uscongress-data parser (cloned but not in Git) or hand-rolled API code for production CR extraction
+- Whether to send the librarian inquiry about ProQuest Historical Newspapers
+- Whether to use full historical Reddit (multi-week processing) or PRAW forward-only for the demo
+
+### Congressional Record — January 2024 extraction complete
+- 547 single-speaker speeches extracted (filtered from 1,528 floor granules)
+- 51 unique states + DC represented
+- 397,726 total words, range 346–242,825 chars per speech
+- Distribution heavy in big states (NY=112, CA=45), thin in small states (MS/NH/DE/ME=1)
+- Methodology note: small-state cells will need time aggregation for stable embeddings
+
+## 2026-06-05 — GDELT article text fetch completed
+
+**Source:** GDELT 2.0 Global Knowledge Graph via BigQuery (project: bias-project-gdelt)
+**Target period:** January 2024
+**Sample:** 1,530 URLs (30 per state × 51 states)
+
+**Fetch results:**
+- Successful (real text): ~690 articles
+- Fetch failed (403/timeout/block): 828
+- Paywall stubs: 1
+- No text extracted: 0
+- Total runtime: 127.5 minutes
+
+**Success rate:** ~45% — lower than the 60-80% projected range
+**Usable coverage:** ~13 articles per state on average
+
+**Output files:**
+- `corpus/gdelt/2024-01/gdelt_articles_with_text.csv` — articles with text
+- `corpus/gdelt/2024-01/fetch_errors.log` — failed URL log
+
+**Key finding:** Failure pattern is consistent with domain-level bot blocking —
+failures increased steadily from 40% in early batches to 54% overall. Zero
+paywall stubs suggests hard blocks (403/timeout) rather than soft paywalls.
+This confirms the GDELT URL-fetch engineering risk documented in the earlier
+session. 690 articles is sufficient for a demo but insufficient for a
+production-grade state-year corpus. Mitigation options: user-agent rotation,
+residential proxies, or supplementing with a source that provides full text
+directly (Congressional Record, Chronicling America, Reddit).
+
+**Status:** Complete for January 2024 demo slice. Full-scale extraction
+deferred pending evaluation of fetch success rate improvement strategies.
+
+## 2026-06-05 — Chronicling America extraction completed
+
+**Source:** Library of Congress Chronicling America via loc.gov API
+**Target period:** 1920, 1921, 1922
+**States:** OH, WY, CA, TX, IL, MS, MT, OR, NY (9 states)
+**Cap:** 50 pages per state-year cell
+
+**Results:**
+- Total pages fetched: 1,350
+- No text extracted: 163 (12% — normal for OCR pages)
+- All 27 cells (9 states × 3 years) fully populated at 50 pages each
+
+**Output files:**
+- `corpus/chronicling_america/1920-1922/articles.csv` — page-level OCR text
+- `corpus/chronicling_america/1920-1922/errors.log` — pages with no text
+
+**Key technical notes:**
+- Legacy chroniclingamerica.loc.gov API is dead (403 Cloudflare block)
+- New loc.gov API used with `dl=page` filter for page-level results
+- OCR text is returned directly in the `description` field of API response
+  — no separate OCR fetch needed
+- Multi-word state names require spaces not hyphens (e.g. 'new york' not
+  'new-york') — confirmed via debug testing
+- Date filter works correctly with `start_date`/`end_date` parameters
+
+**Status:** Complete for 1920–1922 demo slice. Full 50-state extraction
+and extension to full 1900–1963 range deferred until after Friday demo.
+
+---
+
+## 2026-06-05 — Reddit/PullPush extraction completed
+
+**Source:** PullPush API (https://api.pullpush.io) — community successor to Pushshift
+**Target period:** January 2020
+**States:** All 50 states (state subreddits)
+**Cap:** 200 posts + 200 comments per state
+
+**Results:**
+- Total posts: 4,423
+- Total comments: 4,563
+- Total items: 8,986
+- Average per state: ~180 items
+- All 50 states covered with usable data
+
+**Output files:**
+- `corpus/reddit/2020-01/posts.csv` — submissions with title + selftext
+- `corpus/reddit/2020-01/comments.csv` — comments with body text
+- `corpus/reddit/2020-01/errors.log` — fetch errors
+
+**Key technical notes:**
+- PullPush API requires no API key, no authentication
+- Submissions are mostly link posts (title-only text); selftext thin
+- Comments provide the bulk of usable text (~80-95% non-deleted per state
+  confirmed in verification testing across 9 states)
+- Small states (WY, VT, ND) have lower volume but still returned usable data
+- Deleted/removed content filtered out during extraction
+- Rate limit: 1.5s delay between requests, no throttling encountered
+
+**Status:** Complete for January 2020 demo slice. Full historical extraction
+(2011–present, all 50 states) deferred — estimated 3–6 weeks background
+processing time. Reddit greenlit by Gineete as a corpus source.
+
+---
+
+## 2026-06-05 — GSS validation data processed
+
+**Source:** GSS Data Explorer (gssdataexplorer.norc.org)
+**File:** `validation_data/gss/gss_gender_attitudes.xlsx`
+**Variables:** FEFAM, FEPRES, FEWORK, FECHLD, FEHELP, FEPOL, FEHIRE,
+               YEAR, REGION_7222, REG16_7222 (+ demographics)
+**Rows:** 75,699 respondents, 1972–2024
+
+**Processing steps:**
+- Replaced GSS missing value codes (-100, -99, -98, -97, -96, -90, -89, -70)
+  with NaN
+- Filtered out region code -70 (not applicable)
+- Computed region-year means for all 7 attitude variables
+- Added region labels (9-category REGION_7222)
+- Computed composite gender attitude score (mean across available variables)
+- Dropped region-year cells with no valid responses
+
+**Results:**
+- Valid attitude responses: 47,516 out of 75,699 (63%)
+- Clean region-year panel: 261 cells (9 regions × years 1972–2022)
+- National trend: composite score rises from ~1.3 (1972) to ~2.5 (2021)
+  indicating progressive shift toward less traditional gender attitudes
+- Variable coverage: fepol 93%, fefam/fechld 79%, fepres 66%, fework 59%,
+  fehire 45%, fehelp 38%
+
+**Output files:**
+- `validation_data/gss/processed/gss_region_year_clean.csv` — main panel
+- `validation_data/gss/processed/gss_region_year_means.csv` — raw means
+- `validation_data/gss/processed/gss_national_trend.csv` — national averages
+
+**Status:** Complete. Ready for validation once bias scores are computed.
