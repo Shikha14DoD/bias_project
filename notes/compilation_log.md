@@ -574,3 +574,40 @@ processing time. Reddit greenlit by Gineete as a corpus source.
 - `validation_data/gss/processed/gss_national_trend.csv` — national averages
 
 **Status:** Complete. Ready for validation once bias scores are computed.
+
+## 2026-06-07 — Embedding pipelines completed (all three methodologies)
+
+### Word2Vec + WEAT6
+- Trained per-state Word2Vec models on combined corpus (CR + CA + GDELT + Reddit)
+- min_count=1 to maximize WEAT word coverage
+- **States scored: 28 out of 50**
+- **Gap states (22):** AL, AZ, CO, DE, FL, ID, KS, MO, MT, NH, NJ, NM, OK, PA, RI, SD, TN, UT, VT, WA, WI, WV
+- Gap reason: WEAT word list terms absent from small per-state corpus
+- Gap documented in `outputs/embeddings/word2vec/weat6_gap_documentation.json`
+- Score range: -0.057 to +0.050 (mixed directions)
+- Output: `outputs/embeddings/word2vec/weat6_scores_word2vec.csv`
+
+### GloVe + WEAT6 (corpus-weighted pretrained GloVe)
+- Used pretrained GloVe 6B 100d vectors (downloaded to `models/glove/`, excluded from Git)
+- Corpus-weighted approach: pretrained vectors weighted by state-level word frequencies
+- Mittens fine-tuning abandoned — prohibitive runtime (50+ minutes for partial run)
+- Corpus-weighted GloVe is the practical alternative at demo corpus scale
+- **All 50 states scored**
+- Global GloVe baseline: 0.2165 (male→career)
+- Score range: 0.09 to 0.26 (all male→career)
+- Output: `outputs/embeddings/glove/weat6_scores_glove.csv`
+
+### BERT + SEAT
+- Used pretrained bert-base-uncased (HuggingFace, ~440MB, cached locally)
+- SEAT approach: contextual embeddings from real corpus sentences per state
+- Template: sentences containing each WEAT word sampled from state corpus (5 per word)
+- **All 50 states scored**
+- Global BERT baseline: 0.0063 (male→career)
+- Score range: -0.009 to +0.039 (44 male→career, 6 female→career)
+- Output: `outputs/embeddings/bert/seat_scores_bert.csv`
+
+**Key technical notes:**
+- GloVe 6B 100d file (331MB) excluded from Git via .gitignore — download from Stanford NLP
+- git filter-branch used twice to remove GloVe file from commit history
+- All BERT processing on CPU — no GPU available; runtime ~20 minutes for 50 states
+- Word2Vec gap states will be resolved with full-scale extraction (more text per state)
