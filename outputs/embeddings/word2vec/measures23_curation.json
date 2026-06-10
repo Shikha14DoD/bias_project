@@ -1,0 +1,18 @@
+{
+  "measure2_competence_warmth": {
+    "competence_list": "garg_2018/adjectives_intelligencegeneral.txt (28 words)",
+    "warmth_list": "garg_2018/adjectives_sensitive.txt minus overlaps (18 words)",
+    "overlap_removed": [
+      "intelligent",
+      "brilliant"
+    ],
+    "targets": "garg_2018 male_pairs/female_pairs"
+  },
+  "measure3_leadership_subordination": {
+    "leadership_list": "custom_leadership/leadership_terms.txt (16 words)",
+    "subordination_list": "custom_leadership/subordination_terms.txt (16 words)",
+    "curation_doc": "word_lists/custom_leadership/README.md",
+    "targets": "garg_2018 male_pairs/female_pairs"
+  },
+  "sign_convention": "positive = male more associated with first attribute (competence / leadership)"
+}
