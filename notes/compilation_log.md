@@ -687,3 +687,65 @@ were already correct. All four now use Garg pronoun pairs, Career-Family
 - Permutation-test p-values (next)
 - Inter-method correlation matrix (quantify the "weak" claim)
 - Duncan Dissimilarity Index — IPUMS extract scope sent to Gineete, awaiting reply
+
+
+## 2026-06-18 — Period-split re-scoring (GloVe + BERT) + composite z-scores
+
+### All four methods now period-split & aligned
+Found that the saved GloVe and BERT CSVs still used the deprecated mixed_demo
+design (one cell per state, all periods merged). Re-ran both period-split.
+Word2Vec and RoBERTa were already correct. All four now use Garg pronoun pairs,
+Career-Family (WEAT6 / SEAT), (state, period) cells, sign convention
+positive = male->career.
+
+| Method   | File                          | Score column        | Cells |
+|----------|-------------------------------|---------------------|-------|
+| Word2Vec | weat6_scores_word2vec_v2.csv  | weat6_pairs_d       | 38    |
+| GloVe    | weat6_scores_glove_v2.csv     | weat6_d             | 81    |
+| BERT     | seat_scores_bert_v2.csv       | seat_career_family  | 108   |
+| RoBERTa  | seat_scores_roberta.csv       | seat_career_family  | 108   |
+
+- BERT re-run also switched [CLS] -> mean-pooling, so the BERT vs RoBERTa 2x2 is
+  now unconfounded (both mean-pooled, same targets, 108 cells each).
+- GloVe per-period means (all positive): hist_1920s 0.78, modern_2020 0.52,
+  modern_2024 0.83.
+- BERT by period (male->career / female->career): hist_1920s 7/2,
+  modern_2020 31/19, modern_2024 37/12.
+
+### Composite z-scores — DONE
+- code/analysis/composite_scores.ipynb -> outputs/composite/composite_scores.csv
+- Each method z-scored within itself (mean 0, sd 1) before combining, to remove
+  scale differences (raw means: GloVe +0.71, Word2Vec +0.004, BERT +0.007,
+  RoBERTa +0.001 — z-scoring equalizes their contribution).
+- Composite = mean of available method z-scores per cell; require >=2 methods;
+  n_methods recorded per cell.
+- Coverage: 108 cells, all with >=2 methods (38 with all 4, 43 with 3, 27 with 2).
+- Period means (relative, within-dataset): hist_1920s -0.195,
+  modern_2020 -0.120, modern_2024 +0.217.
+- CAVEAT: composite_z is a RELATIVE ranking across cells, not an absolute bias
+  level. Pipeline deliverable — construction is correct, but weak inter-method
+  correlation at demo scale means substantive values are not yet interpretable.
+  Ready for full-scale corpus.
+
+### Era-name coverage check — DONE
+- code/embeddings/word2vec_weat.ipynb (Cell 11) ->
+  outputs/validation/era_name_coverage.csv
+- Era names present in corpus but male-skewed (~4-5x female across periods);
+  Reddit (modern_2020) sparse, all zero-coverage cells are Reddit.
+- Conclusion: supplementary signal in name-dense corpora (news, Congressional);
+  female side + social media need full-scale extraction. Satisfies Section 7.2.
+
+### Era-specific SSA name lists — DONE (earlier)
+- Built from SSA national data via GitHub mirror hackerb9/ssa-baby-names
+  (SSA server hard-blocks programmatic access). Birth-cohort windows:
+  historical_1920s = 1880-1900, modern_2024 = 1950-2005. Top-20 male/female
+  per era, single-sex purity >=0.95. Output: word_lists/era_names/
+
+### Pending
+- Permutation-test p-values: code/embeddings/permutation_tests.ipynb exists from
+  an earlier session — needs review + repoint to the _v2 score files (next task).
+- Inter-method correlation matrix: code/validation/cross_model_consistency.ipynb
+  exists — check whether it already covers this before adding anything.
+- Duncan Dissimilarity Index — IPUMS account created; extract scope (1920 census +
+  recent ACS, OCC1950 harmonized, demo-scope) sent to Gineete, awaiting reply.
+  Data will land in validation_data/census_acs/.
