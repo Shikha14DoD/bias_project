@@ -611,3 +611,79 @@ processing time. Reddit greenlit by Gineete as a corpus source.
 - git filter-branch used twice to remove GloVe file from commit history
 - All BERT processing on CPU — no GPU available; runtime ~20 minutes for 50 states
 - Word2Vec gap states will be resolved with full-scale extraction (more text per state)
+
+## 2026-06-18 — Era-name coverage check (Word2Vec corpus)
+
+**Question:** Do the era-specific SSA name lists actually appear in the demo
+corpus often enough to matter for scoring?
+
+**Method:** Counted era-name presence and frequency over the same tokenized
+(state, period) cells Word2Vec scored on (gensim simple_preprocess), via Cell 11
+of `word2vec_weat.ipynb`. Periods mapped: hist_1920s→historical_1920s,
+modern_2020/modern_2024→modern_2024.
+**Output:** `outputs/validation/era_name_coverage.csv`
+
+**Results (mean per 10k tokens):**
+| period       | male hits/10k | female hits/10k | male cov% | female cov% |
+|--------------|---------------|-----------------|-----------|-------------|
+| hist_1920s   | 29.86         | 6.44            | 37.2      | 12.2        |
+| modern_2020  | 4.20          | 2.03            |  7.5      |  2.7        |
+| modern_2024  | 16.25         | 3.70            | 36.9      | 14.6        |
+
+- 158 of 222 (state, period, sex) groups have >=1 era name present.
+- All zero-coverage cells are modern_2020 (Reddit) — conversational text is not
+  name-dense.
+
+**Findings (not bugs):**
+- Coverage is real, NOT near-zero (unlike Caliskan name lists). Names DO appear.
+- Male coverage ~4-5x female across all periods. News/Congressional text names
+  more men; female mentions spread across a longer tail outside the top-20 list.
+  Consistent with the documented male-name temporal-stability effect.
+- Reddit (modern_2020) too sparse for stable name-based WEAT scoring.
+
+**Deliverable status (Gineete Section 7.2):** Built and coverage-validated.
+Usable as a SUPPLEMENTARY signal in name-dense corpora (news, Congressional
+Record). Female side and social-media (Reddit) coverage require full-scale
+extraction before name-based scoring is stable.
+
+
+## 2026-06-18 — Period-split re-scoring (GloVe + BERT) + composite z-scores
+
+### All four methods now period-split & aligned
+Discovered GloVe and BERT saved CSVs still used the deprecated mixed_demo
+single-cell-per-state design. Re-ran both period-split; Word2Vec and RoBERTa
+were already correct. All four now use Garg pronoun pairs, Career-Family
+(WEAT6/SEAT), (state, period) cells, sign convention positive = male->career.
+
+| Method   | File                          | Score column        | Cells |
+|----------|-------------------------------|---------------------|-------|
+| Word2Vec | weat6_scores_word2vec_v2.csv  | weat6_pairs_d       | 38    |
+| GloVe    | weat6_scores_glove_v2.csv     | weat6_d             | 81    |
+| BERT     | seat_scores_bert_v2.csv       | seat_career_family  | 108   |
+| RoBERTa  | seat_scores_roberta.csv       | seat_career_family  | 108   |
+
+- BERT re-run also switched [CLS] -> mean-pooling, so BERT vs RoBERTa 2x2 is
+  now unconfounded (both mean-pooled, same targets, 108 cells each).
+- GloVe per-period means (all positive): hist_1920s 0.78, modern_2020 0.52,
+  modern_2024 0.83. BERT: 7/2, 31/19, 37/12 male->career by period.
+
+### Composite z-scores — DONE
+- code/embeddings/composite_scores.ipynb -> outputs/composite/composite_scores.csv
+- Each method z-scored within itself (mean 0, sd 1) to remove scale differences
+  (GloVe raw mean +0.71 vs RoBERTa +0.001 — z-scoring equalizes contribution).
+- Composite = mean of available method z-scores; require >=2 methods; n_methods
+  recorded per cell. Coverage: 108 cells (38 with 4 methods, 43 with 3, 27 with 2).
+- Period means (relative, within-dataset): hist_1920s -0.195, modern_2020 -0.120,
+  modern_2024 +0.217.
+- Caveat: composite_z is a RELATIVE ranking across cells, not absolute bias level.
+  Pipeline deliverable — construction correct, but weak inter-method correlation
+  at demo scale means substantive values not yet interpretable. Ready for full-scale.
+
+### Era-name coverage check — DONE (earlier today)
+- outputs/validation/era_name_coverage.csv. Names present but male-skewed (~4-5x
+  female); Reddit sparse. Supplementary at demo scale; full extraction for the rest.
+
+### Pending
+- Permutation-test p-values (next)
+- Inter-method correlation matrix (quantify the "weak" claim)
+- Duncan Dissimilarity Index — IPUMS extract scope sent to Gineete, awaiting reply
