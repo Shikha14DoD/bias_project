@@ -799,3 +799,15 @@ static side is unstable, inter-method and GSS correlations are weak, permutation
 significance is sparse/artifactual, era-name coverage is thin. This is a
 documented corpus-size finding and the evidence base for full-scale extraction,
 not a methodology failure.
+
+### GSS validation re-run (period-split, modern-only) — DONE
+- code/validation/validation.ipynb -> outputs/validation/gss_validation_by_period.csv
+- Fixed prior flaw: old run merged mixed-period scores vs 2010-2022 GSS. Now uses
+  period-split _v2 scores, modern cells only (GSS starts 1972, can't validate 1920),
+  reported separately for modern_2020 and modern_2024, all 4 methods.
+- Result: no significant correlation (all p>0.39). Most coefficients lean weakly
+  NEGATIVE = expected direction (more bias <-> more traditional). Best: w2v
+  modern_2020 r=-0.148. w2v modern_2024 skipped (only 3 states).
+- Caveats unchanged: region-level GSS (9 values / 50 states) limits power; demo
+  corpus ~100x below published scale. Framework built, ready to rerun at full scale.
+- Dropped redundant inter-method cell (now in cross_model_consistency.ipynb).
