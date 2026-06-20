@@ -811,3 +811,27 @@ not a methodology failure.
 - Caveats unchanged: region-level GSS (9 values / 50 states) limits power; demo
   corpus ~100x below published scale. Framework built, ready to rerun at full scale.
 - Dropped redundant inter-method cell (now in cross_model_consistency.ipynb).
+
+### Occupation Associations (Measure 4) — reviewed, complete
+- code/embeddings/occupation_associations.ipynb ->
+  outputs/embeddings/occupation/occupation_rnd_scores.csv + census_validation_summary.json
+- Garg (2018) relative norm distance: ||occ - v_male|| - ||occ - v_female||,
+  positive = female-associated. Period-level (states pooled — occupation words too
+  sparse for per-state cells), multi-seed (5), validated vs Census female-% per
+  occupation (OCC1950), Garg Fig 1 regression design.
+- Census/occupation lists pre-aligned on OCC1950 (Garg-bundled data) — same code
+  as the IPUMS extract, so the two join cleanly. 74/76 occupations matched in Census.
+- Corpus sizes: hist_1920s 227K words, modern_2020 255K, modern_2024 680K.
+- Freq-filtered (>=10 mentions) validation r²: hist_1920s 0.079 (slope -0.683,
+  WRONG direction), modern_2020 0.043 (+0.397), modern_2024 0.060 (+0.545).
+  Both modern periods correct-direction, strongest in largest corpus. No sig at
+  demo scale (Garg benchmark r²>=0.123 on ~100x larger corpora).
+- All-occupations validation r²: hist_1920s 0.013, modern_2020 0.000, modern_2024
+  0.056 (p=0.115, closest to sig). Same pattern.
+- hist_1920s wrong-direction diagnosed: Chronicling America truncated description-
+  field text, not full OCR. Full-scale ocr.txt fetch is the documented fix.
+- Re-run confirmed reproducible (freq-filtered numbers matched saved JSON exactly).
+- IPUMS upgrade: replace 2015 placeholder CENSUS_YEAR with decade-matched ACS/census
+  years once extract lands. Cell 5 JSON currently hardcodes freq-filtered values —
+  recompute live at full scale to avoid future drift.
+- All 4 proposal measures now implemented.
