@@ -880,3 +880,75 @@ NULLS (all same cause: demo corpus ~100x too small -> noisy scores):
 Coherent demo narrative: infrastructure + reference data solid; largest corpus
 shows right directional signal; language measures need full-scale corpus to
 become reliable. This is the evidence base for full-scale extraction.
+
+## 2026-06-30 — Chronicling America OCR truncation fix (full-text refetch)
+
+**Problem found:** The 1920–1922 corpus `articles.csv` `text` column held the
+loc.gov search `description` field, hard-truncated to ~1,100 chars/page
+(verified: mean 1,063, max 1,471 across all 1,350 pages, zero pages >5,000).
+A real newspaper page is ~15,000–25,000 chars. So the entire historical corpus
+was ~5–10% of actual page text, feeding all four embedding methods. This is the
+root cause of the hist_1920s wrong-direction occupation result (slope −0.285)
+diagnosed earlier — it generalizes to the whole historical period, not just
+occupation.
+
+**Fix:** `code/chronicling_america/refetch_full_ocr_v2.py`. Reuses the existing
+`item_id` URLs (no re-running the search), fetches each page's resource JSON,
+reads the `fulltext_service` endpoint (tile.loc.gov/text-services/...&full_text=1),
+and pulls `full_text` from the JSON wrapper. Writes a NEW file
+`corpus/chronicling_america/1920-1922/articles_full_ocr.csv`; original left intact.
+
+**Endpoint discovery:** Probed 4 candidates. Winner = `fulltext_service` from the
+resource JSON (`?fo=json`). chroniclingamerica.loc.gov/ocr.txt is Cloudflare-blocked
+(403); tile.loc.gov is not. Confirmed recovery: one test page went 1,471 → 23,359
+chars (~16×).
+
+**Rate-limiting learnings (important for full-scale):**
+- loc.gov rate-limits aggressively. First script at 0.5s/page tripped the throttle
+  → 429 Too Many Requests on ~99% of pages. IP hard-blocked after ~15 rapid calls.
+- v2 uses 8s base delay + exponential backoff (20/40/80/160/320s) on 429/520.
+- Repeated rapid re-runs re-trigger the block; recovery requires a cooldown
+  (30–60+ min). Test with a single request (expect 200) before re-running.
+- Script is resumable (checkpoints every 10 pages, keeps rows with full OCR).
+
+**Status:** Fix proven. ~300/335 attempted pages recovered at mean 20,909 chars.
+Remaining ~1,015 pages pending — throttle-limited, needs more passes (or a single
+overnight run at higher delay). NOT yet complete.
+
+**Blocking for historical claims:** Until refetch completes and the 4 embedding
+notebooks are repointed at `articles_full_ocr.csv` and re-run, ALL hist_1920s
+numbers (occupation slope, era-name coverage, composite period means, GloVe/BERT
+historical means) are built on truncated text and must not be reported as signal.
+Modern cells (CR/GDELT/Reddit) unaffected.
+
+**Full-scale note:** Per-page API fetching won't scale to 50 states × 60+ years at
+this throttle. Production path = loc.gov bulk data (ndnp batch files, e.g.
+`batch_ohi_goyle_ver01`), which bypasses per-page API rate limits.
+
+## 2026-06-30 — Chronicling America OCR refetch: COMPLETE
+
+**Outcome:** DONE. The corpus has 335 UNIQUE pages, not 1,350 — the original
+articles.csv has 1,015 duplicate rows (each page repeated ~4×, unique item_id=335).
+The "stuck at 300/1350" was an illusion from counting duplicates; there were only
+335 pages to fetch and all are now attempted.
+  - Full OCR (>=2000 chars): 300 pages, mean ~20,900 chars (was ~1,060 truncated)
+  - Genuinely short (<2000): 35 pages — real thin/sparse OCR (mostly 1912 paper
+    sn2008060406), not fetch failures. Confirmed by direct probe (241-char page
+    returns exactly 241 chars from fulltext_service).
+  - Truncation fix verified: ~20× more text per page.
+
+**Two data-quality issues found:**
+1. DUPLICATION: original CA extractor wrote each page ~4× (1350 rows / 335 unique).
+   Inflated all historical corpus counts downstream. Full-scale extractor must
+   dedupe on item_id.
+2. Short pages: 35 of 335 genuinely sparse — expected for this source (~10% no/low OCR).
+
+**Embedding-stage guards (REQUIRED when repointing notebooks at articles_full_ocr.csv):**
+  ca_df = ca_df.drop_duplicates('item_id')              # fix 4x duplication
+  ca_df = ca_df[ca_df['text_length'] >= 2000]           # full pages only
+Apply in all 4 scorers (word2vec_weat, glove_weat, bert_seat, roberta_seat).
+Expected: ~300 unique full pages feed the historical embeddings.
+
+**Superseded:** refetch_full_ocr.py (v1, throttle), _v2 (resume bug). v3 is final.
+**Next:** repoint 4 notebooks (with both guards) → re-run hist_1920s cells →
+check whether full OCR fixes the wrong-direction occupation slope (was -0.285).
