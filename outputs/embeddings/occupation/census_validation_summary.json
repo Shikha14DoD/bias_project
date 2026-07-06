@@ -11,25 +11,25 @@
   "benchmark": "Garg 2018: r2=0.499 (Google News), r2>=0.123 (COHA decades, ~25M+ words)",
   "results_all_occupations": {
     "hist_1920s": {
-      "n_occupations": 30,
+      "n_occupations": 59,
       "census_year": 1920,
-      "r_squared": 0.013,
-      "p_value": 0.5482899155395271,
-      "slope": -0.2851
+      "r_squared": 0.0225,
+      "p_value": 0.25646529499828513,
+      "slope": 0.2478
     },
     "modern_2020": {
       "n_occupations": 35,
       "census_year": 2015,
-      "r_squared": 0.0,
-      "p_value": 0.9858400320508018,
-      "slope": 0.0051
+      "r_squared": 0.0004,
+      "p_value": 0.9051115938753895,
+      "slope": 0.0308
     },
     "modern_2024": {
-      "n_occupations": 46,
+      "n_occupations": 43,
       "census_year": 2015,
-      "r_squared": 0.0556,
-      "p_value": 0.11461998960284102,
-      "slope": 0.5052
+      "r_squared": 0.0154,
+      "p_value": 0.42746014293218465,
+      "slope": 0.2062
     }
   },
   "results_freq_filtered": {
