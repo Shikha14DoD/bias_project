@@ -952,3 +952,42 @@ Expected: ~300 unique full pages feed the historical embeddings.
 **Superseded:** refetch_full_ocr.py (v1, throttle), _v2 (resume bug). v3 is final.
 **Next:** repoint 4 notebooks (with both guards) → re-run hist_1920s cells →
 check whether full OCR fixes the wrong-direction occupation slope (was -0.285).
+
+
+## 2026-06-30 — All 4 embedding methods repointed to full-OCR historical corpus
+
+Applied the Chronicling America full-OCR fix across all four scorers. Each now
+reads articles_full_ocr.csv with drop_duplicates('item_id') + text_length>=2000
+filter (fixes both the description-field truncation and the 4x row duplication).
+
+**Two bugs fixed along the way:**
+1. Tokenization (Word2Vec only): tokenize() split whole page into ONE token-list
+   -> each 20k-char page = 1 "sentence" (hist_1920s stuck at 300 sents). Fixed to
+   sentence-split (re.split on [.!?\n]) + add_to_corpus .extend() not .append().
+   Result: hist_1920s 300 -> 125,156 sentences.
+2. Column mismatch (BERT save cell): referenced 'seat_score' but scorer outputs
+   'seat_career_family'. Fixed downstream save/summary cell.
+
+**Sentence/vocab pools after fix (hist_1920s):**
+- Word2Vec: 300 -> ~125k sentences; CA 5,115 / IL 17,404 etc.
+- BERT/RoBERTa (SEAT): 150 -> mean ~7,112 sentences/cell (NY 16,254 max)
+- GloVe: thin -> full vocab, 15-17 target words present per cell
+
+**Historical Career-Family results (now on clean full text):**
+- Word2Vec: reliable, ±0.30, mixed direction (CA -0.30, IL +0.32)
+- GloVe:    mean d +0.89, all 9 cells strongly male->career (best coverage)
+- BERT:     +0.007 to +0.019, slightly positive
+- RoBERTa:  ~0.000, near zero
+Pattern: static models (W2V, GloVe) show substantive 1920s male->career bias;
+contextual models (BERT, RoBERTa) near zero. Consistent with documented
+static-vs-contextual divergence (cross-family rho ~ 0), now on real text not
+truncated noise.
+
+**File hygiene note:** GloVe writes weat6_scores_glove_v2.csv (period-split, correct).
+Old weat6_scores_glove.csv (mixed_demo) is STALE — downstream analysis (composite,
+cross-model consistency) must read the _v2 file. Verify before re-running those.
+
+**Status:** All 4 methods consistent on full-OCR historical corpus. hist_1920s
+now interpretable (was truncated-text noise before). Downstream re-runs needed:
+composite, cross-model consistency, permutation, occupation, era-name coverage,
+GSS validation — all should be recomputed on the fixed historical scores.
