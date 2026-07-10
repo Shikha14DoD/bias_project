@@ -1056,3 +1056,128 @@ occupation (direction fixed -0.68->+0.25), composite (hist +0.16, all 4 methods)
 cross-model (BERT-RoBERTa 0.89, static divergence structural), permutation (chance
 floor + TX hist_1920s real signal), era-name (coverage 12->57% / 37->88%), GSS (null,
 correct-direction lean). OCR fix fully validated end-to-end.
+
+
+## 2026-07-06 — Ginette comment responses + methodology doc revisions
+
+Worked through Ginette's methodology-doc comments; resolved and replied to each.
+
+**Comment 0 / 20 / 22 — architecture structure (BERT/GloVe mislabeling):**
+Ginette flagged that the doc called BERT "corpus-trained" in the table but
+"pre-trained" in the prose. Verified from code (bert_seat.ipynb loads
+bert-base-uncased pre-trained, no per-cell retraining). BERT is pre-trained;
+table was wrong. Also caught GloVe mislabeled "trained on state-year corpus" —
+it uses pretrained GloVe 6B. Corrected doc: true structure is one corpus-trained
+(Word2Vec) + three pre-trained (GloVe, BERT, RoBERTa), NOT a 2x2. Fixed opening
+bullet, 4.1 prose, table heading, BERT + GloVe cells. All highlighted.
+
+**Comments 1/2 — kin-term confound (Career-Family targets):**
+Ginette: gender targets contain kin terms (mother/father/sister…) that are also
+family words -> possible leakage. Ran her ablation (kin_ablation_cell.py in
+word2vec_weat.ipynb). Result: Part A leakage probe = -0.022 (kin NOT closer to
+family than names -> no leakage at demo scale, since small from-scratch corpus
+doesn't encode kin≈family). Part B ablation moved d materially (mean |change|
+0.105) but that's target-set instability on tiny corpus, not leakage. Decision:
+KEEP full targets, recheck at full scale. Outputs: kin_ablation.csv,
+kin_leakage_probe.csv.
+
+**Comments 3/4/5/6 — word-list dedup (leadership/subordination):**
+Ginette flagged subordination pole built from job-titles colliding with the
+Occupation measure. Ran full dedup across all 4 dimensions. Found subordination
+was already mostly status words (no secretary/assistant collision); real
+collisions were 4 tokens, mostly leadership-side: manager (lead+occ), executive
+(lead+career), decisive (lead+competence), supportive (subord+warmth). Removed
+all 4; rebuilt leadership + subordination to status words per Ginette's
+suggestions (subordinate/junior/underling/inferior/deferential added). "secretary"
+kept in occupation list (its 1900->1990 male->female shift is signal we want),
+removed from subordination. Re-checked: zero cross-dimension collisions.
+Measures 2/3 re-scored on clean lists (still sparse, 6 rows — demo-scale).
+Files: word_lists/custom_leadership/{leadership,subordination}_terms.txt.
+
+**Comment — temporal coverage (three-point demo, not continuous panel):**
+Ginette: doc describes continuous state-year panel but demo is 3 time points
+(~1920, 2020, 2024), nothing in middle. Acknowledged; corpus-access question.
+Path: Chronicling America (1900-1963), ProQuest Historical Newspapers (1964-84,
+pending), Newsstream (1985-2014, pending), GDELT (2015+). Replied with plan.
+
+**Corpus-source findings (Ginette's notes, verified):**
+- Chronicling America scope extended to 1963 (2016 NDNP expansion); most 1923-63
+  papers public-domain via copyright non-renewal. VERIFIED via web search — real,
+  but coverage post-1922 is patchy/uneven by state (bulk of collection pre-1922).
+  Shrinks the "real gap" to 1964-1984. UNVERIFIED whether per-state density is
+  usable — needs coverage probe before relying on it.
+- State-run portals (California Digital Newspaper Collection, Utah, PA) cover
+  mid-century better, state-resolved by construction, free — but patchwork access
+  per state. Documented as full-scale option, not yet pursued.
+
+  ## 2026-07-06 — Section 2.4 composite sign-alignment fix
+
+Ginette (2.4 comment): all four dimensions must be sign-aligned to
+"higher = more bias" before z-score averaging, or they partially cancel.
+
+Audited native signs of all four dimensions:
+- Career-Family (WEAT, male=X, career=A): positive = male->career. ALIGNED.
+- Competence-Warmth (WEAT, male=X, competence=A): positive = male->competence. ALIGNED.
+- Leadership-Subordination (WEAT, male=X, leadership=A): positive = male->leadership. ALIGNED.
+- Occupation (Garg RND): positive = female-associated. *** OPPOSITE — needs flip ***
+
+Only Occupation is misaligned (three WEAT dims already consistent). Baked the
+sign-flip into composite_cross_dimension.py (dim_occupation = -occ_score) with
+full audit documented at top of file. Added sign-alignment step to doc Section 2.4.
+Ran clean: still 5 cells at >=3 dimensions (Occupation period-level, can't join
+per-cell at demo scale — flip is ready for full scale).
+
+NOTE: latent bug caught before it bit — current working composite is cross-MODEL
+(4 models on Career-Family), which never combined dimensions, so misalignment
+hadn't surfaced yet. Applies when the cross-DIMENSION composite (2.4) is populated
+at full scale.
+
+
+## 2026-07-06 — Methodology doc revisions (Sections 2.2, 2.4, 4.1, 4.2, sources)
+
+Applied doc edits to match current code (all highlighted for Ginette):
+- 2.2 table: Career-Family targets (Garg pairs, not "+ names"); leadership +
+  subordination rebuilt lists; removed-words marked.
+- 2.4: sign-alignment step added.
+- 4.1: 2x2 -> one-vs-three throughout; agreement logic reframed (corpus-trained
+  Word2Vec vs pre-trained GloVe/BERT/RoBERTa); Word2Vec coverage 28 -> 80 cells;
+  min_count=5-vs-1 deviation noted; GloVe dim corrected 300 -> 100 (pretrained 6B);
+  table heading + BERT/GloVe cells fixed.
+- 4.2: rewritten around one-vs-three; hypothetical thresholds replaced with
+  observed results (BERT-RoBERTa rho=0.89, Word2Vec-GloVe 0.05); softened
+  "exclude" to "flag/interpret with caution."
+- Sources: Chronicling America (scope to 1963), Congressional Record (GovInfo,
+  1995+, 547 Jan-2024 speeches/51 states), GSS (1972-2024, 261 region-year cells).
+
+**Sign-convention decision — PENDING Ginette.** Doc's WEAT formula was Y-X
+(positive = female-side, per original 2.1); code computes X-Y (positive =
+male->career). Updated doc formula to X-Y to match code + added note. Drafted
+confirmation request to Ginette: recommend keeping positive = male->career
+(intuitive, already implemented everywhere, flip = no analytical gain).
+Awaiting her confirmation. If she prefers 2.1's direction, it's one global negation.
+
+**Still-open doc placeholders:** Census/IPUMS year detail (@Shikha: 1900-2010
+decades + last 5 annual), one bare "add info" placeholder.
+
+
+## 2026-07-09 — Extended demo to 5 time points: extracted 1940 + 1960
+
+Added two mid-century time points to close the gap between 1920s and modern.
+
+**Coverage check first:** probed loc.gov page counts for 1940/1960 across the 9
+demo states — all viable (thousands of pages per state-year; the few None
+returns were query hiccups, confirmed via reprobe). Post-1922 Chronicling America
+coverage is real for these states/years.
+
+**Extraction:** 9 states x 50 pages x 2 years = 900 pages, FULL OCR from the start
+via fulltext_service endpoint (no truncation to fix, unlike the original 1920s slice).
+Resilient fetch (retries on 429/520/connection errors, resumable, ~10s delay).
+- 1940: 450 pages, mean 20,844 chars, all 9 states x 50
+- 1960: 450 pages, mean 16,912 chars, all 9 states x 50
+Files: corpus/chronicling_america/articles_1940.csv, articles_1960.csv
+
+**Demo now spans 5 points:** 1920, 1940, 1960, 2020, 2024 — a real century-scale
+trajectory instead of lopsided then-vs-now.
+
+**Next:** wire 1940/1960 into the 4 embedding notebooks as new periods (hist_1940,
+hist_1960), re-score, then build the demo dashboard across all 5 points.
