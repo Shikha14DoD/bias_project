@@ -17,6 +17,27 @@
       "p_value": 0.25646529499828513,
       "slope": 0.2478
     },
+    "hist_1940": {
+      "n_occupations": 54,
+      "census_year": 1940,
+      "r_squared": 0.0437,
+      "p_value": 0.12924793385436376,
+      "slope": 0.1661
+    },
+    "hist_1960": {
+      "n_occupations": 53,
+      "census_year": 1960,
+      "r_squared": 0.0399,
+      "p_value": 0.1517255768209394,
+      "slope": 0.1651
+    },
+    "modern_2015": {
+      "n_occupations": 44,
+      "census_year": 2015,
+      "r_squared": 0.0915,
+      "p_value": 0.04591753165864077,
+      "slope": 0.1575
+    },
     "modern_2020": {
       "n_occupations": 35,
       "census_year": 2015,
