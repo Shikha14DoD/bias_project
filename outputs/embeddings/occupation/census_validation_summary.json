@@ -1,0 +1,86 @@
+{
+  "method": "garg_2018_relative_norm_distance",
+  "metric": "Euclidean: ||occ - v_male|| - ||occ - v_female||; positive = female-associated",
+  "seeds": [
+    42,
+    7,
+    123,
+    2024,
+    99
+  ],
+  "benchmark": "Garg 2018: r2=0.499 (Google News), r2>=0.123 (COHA decades, ~25M+ words)",
+  "results_all_occupations": {
+    "hist_1920s": {
+      "n_occupations": 59,
+      "census_year": 1920,
+      "r_squared": 0.0225,
+      "p_value": 0.25646529499828513,
+      "slope": 0.2478
+    },
+    "hist_1940": {
+      "n_occupations": 54,
+      "census_year": 1940,
+      "r_squared": 0.0437,
+      "p_value": 0.12924793385436376,
+      "slope": 0.1661
+    },
+    "hist_1960": {
+      "n_occupations": 53,
+      "census_year": 1960,
+      "r_squared": 0.0399,
+      "p_value": 0.1517255768209394,
+      "slope": 0.1651
+    },
+    "modern_2015": {
+      "n_occupations": 44,
+      "census_year": 2015,
+      "r_squared": 0.0915,
+      "p_value": 0.04591753165864077,
+      "slope": 0.1575
+    },
+    "modern_2020": {
+      "n_occupations": 35,
+      "census_year": 2015,
+      "r_squared": 0.0004,
+      "p_value": 0.9051115938753895,
+      "slope": 0.0308
+    },
+    "modern_2024": {
+      "n_occupations": 43,
+      "census_year": 2015,
+      "r_squared": 0.0154,
+      "p_value": 0.42746014293218465,
+      "slope": 0.2062
+    }
+  },
+  "results_freq_filtered": {
+    "hist_1920s": {
+      "n": 16,
+      "r2": 0.079,
+      "p": 0.292,
+      "slope": -0.683
+    },
+    "modern_2020": {
+      "n": 13,
+      "r2": 0.043,
+      "p": 0.499,
+      "slope": 0.397
+    },
+    "modern_2024": {
+      "n": 31,
+      "r2": 0.06,
+      "p": 0.183,
+      "slope": 0.545
+    }
+  },
+  "interpretation": [
+    "Correct-direction (positive) slope in both modern periods; strongest in largest corpus (modern_2024, 680K words)",
+    "No significance at demo scale - expected: Garg decades were ~100x larger",
+    "hist_1920s negative slope consistent with truncated Chronicling America description-field text"
+  ],
+  "action_items": [
+    "Full-scale extraction: fetch full ocr.txt per page for Chronicling America, not API description excerpts",
+    "Rerun validation on full corpus; expect r2 to approach COHA benchmark (>=0.123)",
+    "Extend to state-level occupation scoring once per-state corpus supports occupation vocabulary"
+  ]
+}

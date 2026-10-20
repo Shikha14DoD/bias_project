@@ -1,0 +1,58 @@
+{
+  "method": "word2vec_pairs_effectsize_multiseed",
+  "periods": {
+    "hist_1920s": {
+      "expected_states": 9,
+      "scored": 9,
+      "reliable": 8,
+      "gap_states": [],
+      "gap_reason": "Insufficient WEAT term coverage or <3 valid seeds at demo corpus scale"
+    },
+    "modern_2020": {
+      "expected_states": 50,
+      "scored": 27,
+      "reliable": 1,
+      "gap_states": [
+        "AK",
+        "AZ",
+        "CO",
+        "IL",
+        "KS",
+        "LA",
+        "MD",
+        "ME",
+        "MI",
+        "MN",
+        "NC",
+        "NJ",
+        "NM",
+        "OH",
+        "OR",
+        "SC",
+        "TN",
+        "TX",
+        "VA",
+        "VT",
+        "WA",
+        "WI",
+        "WV"
+      ],
+      "gap_reason": "Insufficient WEAT term coverage or <3 valid seeds at demo corpus scale"
+    },
+    "modern_2024": {
+      "expected_states": 50,
+      "scored": 44,
+      "reliable": 11,
+      "gap_states": [
+        "ID",
+        "MS",
+        "NJ",
+        "NM",
+        "OK",
+        "RI"
+      ],
+      "gap_reason": "Insufficient WEAT term coverage or <3 valid seeds at demo corpus scale"
+    }
+  },
+  "mitigation": "Full-scale extraction will increase per-cell corpus 10-50x, resolving coverage gaps and reducing seed noise."
+}

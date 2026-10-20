@@ -1,0 +1,33 @@
+{
+  "method": "word2vec_weat6",
+  "min_count": 1,
+  "period": "mixed_demo",
+  "total_states": 50,
+  "scored_states": 28,
+  "gap_states": [
+    "AL",
+    "AZ",
+    "CO",
+    "DE",
+    "FL",
+    "ID",
+    "KS",
+    "MO",
+    "MT",
+    "NH",
+    "NJ",
+    "NM",
+    "OK",
+    "PA",
+    "RI",
+    "SD",
+    "TN",
+    "UT",
+    "VT",
+    "WA",
+    "WI",
+    "WV"
+  ],
+  "gap_reason": "Insufficient corpus size \u2014 WEAT word list terms absent from state vocabulary. Will resolve with full-scale extraction.",
+  "mitigation": "Full-scale extraction planned (weeks background processing). Gap states will be scored once per-state corpus exceeds ~50K words."
+}
